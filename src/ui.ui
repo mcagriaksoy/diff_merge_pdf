@@ -6,12 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>841</width>
-    <height>123</height>
+    <width>834</width>
+    <height>101</height>
    </rect>
+  </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::DefaultContextMenu</enum>
   </property>
   <property name="windowTitle">
    <string>PDF Diff and Merge</string>
+  </property>
+  <property name="windowIcon">
+   <iconset theme="icon"/>
   </property>
   <property name="toolTip">
    <string>PDF diff and merge tool v0.0.1</string>
@@ -28,6 +34,15 @@
   <property name="accessibleDescription">
    <string>PDF diff and merge tool v0.0.1</string>
   </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonTextBesideIcon</enum>
+  </property>
+  <property name="animated">
+   <bool>false</bool>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Triangular</enum>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="horizontalLayoutWidget_3">
     <property name="geometry">
@@ -35,7 +50,7 @@
       <x>10</x>
       <y>40</y>
       <width>821</width>
-      <height>31</height>
+      <height>34</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -49,7 +64,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTextBrowser" name="textBrowser"/>
+        <widget class="QLineEdit" name="lineEdit"/>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton">
@@ -68,7 +83,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QTextBrowser" name="textBrowser_2"/>
+          <widget class="QLineEdit" name="lineEdit_2"/>
          </item>
          <item>
           <widget class="QPushButton" name="pushButton_2">
@@ -93,19 +108,9 @@
      </rect>
     </property>
     <property name="text">
-     <string>Please beowse the PDF files to compare!</string>
+     <string>Please browse the PDF files to compare:</string>
     </property>
    </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>841</width>
-     <height>26</height>
-    </rect>
-   </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

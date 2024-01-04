@@ -10,6 +10,6 @@ import subprocess
 from ui import start_ui_design
 
 if __name__ == "__main__":
-    subprocess.check_call(
-        ["python", "-m", "pip", "install", "-r", "requirements.txt"])
+    # subprocess.check_call(
+    #    ["python", "-m", "pip", "install", "-r", "requirements.txt"])
     start_ui_design()
