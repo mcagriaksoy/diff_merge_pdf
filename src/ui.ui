@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>841</width>
+    <height>123</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>PDF Diff and Merge</string>
+  </property>
+  <property name="toolTip">
+   <string>PDF diff and merge tool v0.0.1</string>
+  </property>
+  <property name="statusTip">
+   <string>PDF diff and merge tool v0.0.1</string>
+  </property>
+  <property name="whatsThis">
+   <string>PDF diff and merge tool v0.0.1</string>
+  </property>
+  <property name="accessibleName">
+   <string>PDF diff and merge tool v0.0.1</string>
+  </property>
+  <property name="accessibleDescription">
+   <string>PDF diff and merge tool v0.0.1</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="horizontalLayoutWidget_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>40</y>
+      <width>821</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Select first PDF file:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextBrowser" name="textBrowser"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Select second PDF file:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTextBrowser" name="textBrowser_2"/>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_2">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>241</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Please beowse the PDF files to compare!</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>841</width>
+     <height>26</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
