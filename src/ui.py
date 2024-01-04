@@ -38,12 +38,12 @@ class MainWindow(QMainWindow):
                         self.textBrowser.append(
                             page.extract_text())
                         self.textBrowser.append(
-                            "========= Page {} End ========".format(index + 1))
+                            " \n========= Page {} End ======== \n".format(index + 1))
                     else:
                         self.textBrowser_2.append(
                             page.extract_text())
                         self.textBrowser_2.append(
-                            "========= Page {} End ========".format(index + 1))
+                            " \n========= Page {} End ======== \n".format(index + 1))
                     index += 1
 
     def left_file_dialog(self):
