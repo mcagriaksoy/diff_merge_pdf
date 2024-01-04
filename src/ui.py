@@ -32,11 +32,19 @@ class MainWindow(QMainWindow):
         if file_path:
             index = 0
             with pdfplumber.open(file_path) as pdf:
-                if left_or_right == "left":
-                    self.textBrowser.append(pdf.pages[index].extract_text())
-                else:
-                    self.textBrowser_2.append(pdf.pages[index].extract_text())
-                index += 1
+                index = 0
+                for page in pdf.pages:
+                    if left_or_right == "left":
+                        self.textBrowser.append(
+                            page.extract_text())
+                        self.textBrowser.append(
+                            "========= Page {} End ========".format(index + 1))
+                    else:
+                        self.textBrowser_2.append(
+                            page.extract_text())
+                        self.textBrowser_2.append(
+                            "========= Page {} End ========".format(index + 1))
+                    index += 1
 
     def left_file_dialog(self):
         """ Left File Dialog """
