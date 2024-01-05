@@ -8,11 +8,34 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 
 from PyQt6.uic import loadUi
 
-IS_LEFT_OPEN = False
-IS_RIGHT_OPEN = False
-
 pages_dict_right = {}
 pages_dict_left = {}
+
+
+class SharedObjects():
+    """ Shared Objects """
+
+    def __init__(self,
+                 left_pdf_opened=False,
+                 right_pdf_opened=False,
+                 left_pdf_is_image=False,
+                 right_pdf_is_image=False,
+                 imported_left_pdf={},
+                 imported_right_pdf={}):
+        """ Clear """
+        self.is_left_pdf_opened = left_pdf_opened
+        self.is_right_pdf_opened = right_pdf_opened
+        self.is_left_pdf_is_image = left_pdf_is_image
+        self.is_right_pdf_is_image = right_pdf_is_image
+        self.imported_left_pdf = imported_left_pdf
+        self.imported_right_pdf = imported_right_pdf
+
+    is_left_pdf_opened = False
+    is_right_pdf_opened = False
+    is_left_pdf_is_image = False
+    is_right_pdf_is_image = False
+    imported_left_pdf = {}
+    imported_right_pdf = {}
 
 
 class MainWindow(QMainWindow):
@@ -34,6 +57,10 @@ class MainWindow(QMainWindow):
         self.textBrowser_2.clear()
         self.lineEdit.clear()
         self.lineEdit_2.clear()
+
+        # Init the SharedObjects
+        SharedObjects(False, False, False, False, {}, {})
+
         # delete tmp folder
         for filename in os.listdir("tmp"):
             file_path = os.path.join("tmp", filename)
@@ -41,8 +68,7 @@ class MainWindow(QMainWindow):
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
             except Exception as e:
-                print('Failed to delete %s. Reason: %s' %
-                      (file_path, e))
+                print(f'Failed to delete {file_path}. Reason: {e}')
 
     def open_file_dialog(self):
         """ Open File Dialog """
@@ -66,7 +92,7 @@ class MainWindow(QMainWindow):
                     image['x0'], page_height - image['y1'], image['x1'], page_height - image['y0'])
                 cropped_page = page.crop(image_bbox)
                 image_obj = cropped_page.to_image(resolution=75)
-                image_obj.save("tmp/tmp_{}.jpeg".format(page.page_number))
+                image_obj.save(f"tmp/tmp_{page.page_number}.jpeg")
 
     def get_images(self):
         """ Get Images from disk """
@@ -88,47 +114,77 @@ class MainWindow(QMainWindow):
                     index += 1
         return pages_dict  # Return the dictionary
 
-    def fill_text_browser(self, pages_dict, left_or_right):
+    def fill_left_side_with_images(self):
+        """ Fill Left Side With Images """
+        self.save_images(self.lineEdit.text())
+        images = self.get_images()
+        for image in images:
+            self.textBrowser.append(f'<img src="{image}">')
+
+        SharedObjects.is_left_pdf_is_image = True
+
+    def fill_right_side_with_images(self):
+        """ Fill Right Side With Images """
+        self.save_images(self.lineEdit_2.text())
+        images = self.get_images()
+        for image in images:
+            self.textBrowser_2.append(f'<img src="{image}">')
+
+        SharedObjects.is_right_pdf_is_image = True
+
+    def fill_left_side_with_text(self, pages_dict):
+        """ Fill Left Side With Text """
+        for page in pages_dict:
+            self.textBrowser.append(pages_dict[page])
+
+        SharedObjects.is_left_pdf_is_image = False
+
+    def fill_right_side_with_text(self, pages_dict):
+        """ Fill Right Side With Text """
+        for page in pages_dict:
+            self.textBrowser_2.append(pages_dict[page])
+
+        SharedObjects.is_left_pdf_is_image = False
+
+    def fill_text_browser(self, pages_dict, is_left):
         ''' Fill Text Browser '''
         for page in pages_dict:
-            if left_or_right == "left":
+            if is_left:
                 if pages_dict[page] == "" or pages_dict[page] is None:
-                    self.save_images(self.lineEdit.text())
-                    images = self.get_images()
-                    self.textBrowser.append(
-                        '<img src="{}">'.format(images[page]))
+                    self.fill_left_side_with_images()
                 else:
-                    self.textBrowser.append(pages_dict[page])
+                    self.fill_left_side_with_text(pages_dict)
 
                 self.textBrowser.append(
                     f" \n========= Page {page + 1} End ======== \n")
             else:
                 if pages_dict[page] == "" or pages_dict[page] is None:
-                    self.save_images(self.lineEdit_2.text())
-                    images = self.get_images()
-                    self.textBrowser_2.append(
-                        '<img src="{}">'.format(images[page]))
+                    self.fill_right_side_with_images()
                 else:
-                    self.textBrowser_2.append(pages_dict[page])
+                    self.fill_right_side_with_text(pages_dict)
+
                 self.textBrowser_2.append(
                     f" \n========= Page {page + 1} End ======== \n")
 
-    def make_comparison(self):
-        ''' Make Comparison '''
-        if IS_LEFT_OPEN and IS_RIGHT_OPEN:
-            different_lines = '<span style="color:red;">{}</span>'
-            same_lines = '<span style="color:black;">{}</span>'
+    def paint_the_different_lines(self):
+        ''' Paint the Different Lines '''
+        is_line_different = False
 
-            lines_are_different = False
+        different_lines = '<span style="color:red;">{}</span>'
+        same_lines = '<span style="color:black;">{}</span>'
 
-            # get page count
-            checking_len = len(pages_dict_left)
-            if len(pages_dict_right) > checking_len:
-                checking_len = len(pages_dict_right)
+        # find the page count
+        # TODO: TO PREVENT THE ERROR, WE NEED TO CHECK THE PAGE COUNTS!
+        # Berk! Burada sorun var birbirinden farkli sayfa sayilari olabilir. o zaman hata yapiyor.
+        checking_len = len(SharedObjects.imported_left_pdf)
+        if len(SharedObjects.imported_right_pdf) < checking_len:
+            checking_len = len(SharedObjects.imported_right_pdf)
 
-            for page in range(checking_len):
-                lines_right = pages_dict_right[page].split('\n')
-                lines_left = pages_dict_left[page].split('\n')
+        for page in range(checking_len):
+            try:
+                lines_right = SharedObjects.imported_right_pdf[page].split(
+                    '\n')
+                lines_left = SharedObjects.imported_left_pdf[page].split('\n')
 
                 for line_right, line_left in zip(lines_right, lines_left):
                     if line_right == line_left:
@@ -140,33 +196,42 @@ class MainWindow(QMainWindow):
                             different_lines.format(line_left))
                         self.textBrowser_2.append(
                             different_lines.format(line_right))
-                        lines_are_different = True
-
+                        is_line_different = True
                 self.textBrowser.append(
                     f" \n========= Page {page + 1} End ======== \n")
                 self.textBrowser_2.append(
                     f" \n========= Page {page + 1} End ======== \n")
+            except KeyError:
+                print("KeyError!")
 
-            if lines_are_different is False:
-                if pages_dict_left == pages_dict_right:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Icon.Information)
-                    msg.setWindowTitle("Compare Result")
-                    msg.setText("These files are Binary Same!")
-                    x = msg.exec()
+        return is_line_different
+
+    def make_comparison(self):
+        ''' Make Comparison '''
+        if SharedObjects.is_left_pdf_opened and SharedObjects.is_right_pdf_opened:
+            self.textBrowser.clear()
+            self.textBrowser_2.clear()
+
+            is_line_different = self.paint_the_different_lines()
+
+            if SharedObjects.is_left_pdf_is_image is False and SharedObjects.is_right_pdf_is_image is False:
+                if is_line_different is False:
+                    if SharedObjects.imported_left_pdf == SharedObjects.imported_right_pdf:
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Icon.Information)
+                        msg.setWindowTitle("Compare Result")
+                        msg.setText("These files are Binary Same!")
+                        x = msg.exec()
 
     def left_file_dialog(self):
         """ Left File Dialog """
         file_path = self.open_file_dialog()
         self.lineEdit.setText(file_path)
 
-        global pages_dict_left
-        pages_dict_left = self.open_pdf(file_path)
-        self.fill_text_browser(pages_dict_left, "left")
+        SharedObjects.imported_left_pdf = self.open_pdf(file_path)
+        self.fill_text_browser(SharedObjects.imported_left_pdf, is_left=True)
 
-        global IS_LEFT_OPEN
-        IS_LEFT_OPEN = True
-
+        SharedObjects.is_left_pdf_opened = True
         self.make_comparison()
 
     def right_file_dialog(self):
@@ -174,13 +239,10 @@ class MainWindow(QMainWindow):
         file_path = self.open_file_dialog()
         self.lineEdit_2.setText(file_path)
 
-        global pages_dict_right
-        pages_dict_right = self.open_pdf(file_path)
-        self.fill_text_browser(pages_dict_right, "right")
+        SharedObjects.imported_right_pdf = self.open_pdf(file_path)
+        self.fill_text_browser(SharedObjects.imported_right_pdf, is_left=False)
 
-        global IS_RIGHT_OPEN
-        IS_RIGHT_OPEN = True
-
+        SharedObjects.is_right_pdf_opened = True
         self.make_comparison()
 
 
