@@ -7,8 +7,15 @@
     <x>0</x>
     <y>0</y>
     <width>1241</width>
-    <height>618</height>
+    <height>626</height>
    </rect>
+  </property>
+  <property name="font">
+   <font>
+    <family>Arial</family>
+    <weight>75</weight>
+    <bold>true</bold>
+   </font>
   </property>
   <property name="contextMenuPolicy">
    <enum>Qt::DefaultContextMenu</enum>
@@ -17,7 +24,8 @@
    <string>PDF Diff and Merge v0.0.1</string>
   </property>
   <property name="windowIcon">
-   <iconset theme="icon"/>
+   <iconset theme="icon">
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <property name="toolTip">
    <string>PDF diff and merge tool v0.0.1</string>
@@ -136,12 +144,29 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QTextBrowser" name="textBrowser"/>
+      <widget class="QTextBrowser" name="textBrowser">
+       <property name="lineWrapMode">
+        <enum>QTextEdit::WidgetWidth</enum>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QTextBrowser" name="textBrowser_2"/>
      </item>
     </layout>
+   </widget>
+   <widget class="QPushButton" name="clearButton">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>10</y>
+      <width>131</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Clear Comparison</string>
+    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
