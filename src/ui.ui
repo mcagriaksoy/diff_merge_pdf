@@ -24,8 +24,8 @@
    <string>PDF Diff and Merge v0.0.1</string>
   </property>
   <property name="windowIcon">
-   <iconset theme="icon">
-    <normaloff>.</normaloff>.</iconset>
+   <iconset>
+    <normaloff>icon.ico</normaloff>icon.ico</iconset>
   </property>
   <property name="toolTip">
    <string>PDF diff and merge tool v0.0.1</string>

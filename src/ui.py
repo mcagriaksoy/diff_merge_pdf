@@ -238,12 +238,14 @@ class MainWindow(QMainWindow):
     def make_comparison(self):
         ''' Make Comparison '''
         if SharedObjects.is_left_pdf_opened and SharedObjects.is_right_pdf_opened:
-            self.textBrowser.clear()
-            self.textBrowser_2.clear()
+            if SharedObjects.is_left_pdf_is_image is False:
+                self.textBrowser.clear()
 
-            is_line_different = self.paint_the_different_lines()
+            if SharedObjects.is_right_pdf_is_image is False:
+                self.textBrowser_2.clear()
 
             if SharedObjects.is_left_pdf_is_image is False and SharedObjects.is_right_pdf_is_image is False:
+                is_line_different = self.paint_the_different_lines()
                 if is_line_different is False:
                     if SharedObjects.imported_left_pdf == SharedObjects.imported_right_pdf:
                         msg = QMessageBox()
