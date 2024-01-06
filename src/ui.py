@@ -173,12 +173,14 @@ class MainWindow(QMainWindow):
         different_lines = '<span style="color:red;">{}</span>'
         same_lines = '<span style="color:black;">{}</span>'
 
-        # find the page count
-        # TODO: TO PREVENT THE ERROR, WE NEED TO CHECK THE PAGE COUNTS!
-        # Berk! Burada sorun var birbirinden farkli sayfa sayilari olabilir. o zaman hata yapiyor.
+        is_left_pdf_longer = False
         checking_len = len(SharedObjects.imported_left_pdf)
         if len(SharedObjects.imported_right_pdf) < checking_len:
+            is_left_pdf_longer = True
             checking_len = len(SharedObjects.imported_right_pdf)
+
+        rest_pages = abs(len(SharedObjects.imported_left_pdf) -
+                         len(SharedObjects.imported_right_pdf))
 
         for page in range(checking_len):
             try:
@@ -201,6 +203,33 @@ class MainWindow(QMainWindow):
                     f" \n========= Page {page + 1} End ======== \n")
                 self.textBrowser_2.append(
                     f" \n========= Page {page + 1} End ======== \n")
+            except KeyError:
+                print("KeyError!")
+
+        # create for loop starting from checking_len till the end of the pages
+        for page in range(checking_len, checking_len + rest_pages):
+            try:
+                if is_left_pdf_longer:
+                    lines_left = SharedObjects.imported_left_pdf[page].split(
+                        '\n')
+                else:
+                    lines_right = SharedObjects.imported_right_pdf[page].split(
+                        '\n')
+
+                for line_right, line_left in zip(lines_right, lines_left):
+                    if is_left_pdf_longer:
+                        self.textBrowser.append(
+                            different_lines.format(line_left))
+                    else:
+                        self.textBrowser_2.append(
+                            different_lines.format(line_right))
+
+                if is_left_pdf_longer:
+                    self.textBrowser.append(
+                        f" \n========= Page {page + 1} End ======== \n")
+                else:
+                    self.textBrowser_2.append(
+                        f" \n========= Page {page + 1} End ======== \n")
             except KeyError:
                 print("KeyError!")
 
