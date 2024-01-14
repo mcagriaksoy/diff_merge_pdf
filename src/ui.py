@@ -12,9 +12,6 @@ import fitz
 
 from PyQt6.uic import loadUi
 
-pages_dict_right = {}
-pages_dict_left = {}
-
 
 class SharedObjects():
     """ Shared Objects """
@@ -85,6 +82,9 @@ class MainWindow(QMainWindow):
         self.lineEdit.clear()
         self.lineEdit_2.clear()
 
+        self.graphicsView.setScene(None)
+        self.graphicsView_2.setScene(None)
+
         # Init the SharedObjects
         SharedObjects.current_file = ""
         SharedObjects.imported_left_pdf = {}
@@ -107,29 +107,6 @@ class MainWindow(QMainWindow):
                                                    "PDF Files (*.pdf)")
         if file_path:
             return file_path
-
-    def save_images(self, file_path):
-        """ Get Images """
-        if file_path:
-            pdf = pdfplumber.open(file_path)
-            for page in pdf.pages:
-                images_in_page = page.images
-                page_height = page.height
-                # assuming images_in_page has at least one element, only for understanding purpose.
-                image = images_in_page[0]
-                image_bbox = (
-                    image['x0'], page_height - image['y1'], image['x1'], page_height - image['y0'])
-                cropped_page = page.crop(image_bbox)
-                image_obj = cropped_page.to_image(resolution=75)
-                image_obj.save(f"tmp/tmp_{page.page_number}.jpeg")
-
-    def get_images(self):
-        """ Get Images from disk """
-        images = []
-        for filename in os.listdir("tmp"):
-            if filename.endswith(".jpeg"):
-                images.append("tmp/" + filename)
-        return images
 
     def open_pdf(self, file_path):
         """ Open PDF """
@@ -329,8 +306,14 @@ class MainWindow(QMainWindow):
         ], 0, False)
         return languages
 
+    def clear_if_finished(self):
+        ''' Clear If Finished '''
+        if "Left" in SharedObjects.current_file and "Right" in SharedObjects.current_file:
+            self.clear_all()
+
     def left_file_dialog(self):
         """ Left File Dialog """
+        self.clear_if_finished()
         file_path = self.open_file_dialog()
         self.lineEdit.setText(file_path)
 
@@ -339,6 +322,7 @@ class MainWindow(QMainWindow):
 
     def right_file_dialog(self):
         """ Right File Dialog """
+        self.clear_if_finished()
         file_path = self.open_file_dialog()
         self.lineEdit_2.setText(file_path)
 
