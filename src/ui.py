@@ -5,6 +5,7 @@ __date__ = '2023 January 14'
 import sys
 import os
 import subprocess
+from tkinter import W
 
 try:
     import pdfplumber
@@ -20,14 +21,14 @@ except ImportError:
     import ocrmypdf
 
 try:
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsRectItem
     from PyQt6.QtCore import QThread, pyqtSignal
-    from PyQt6.QtGui import QPixmap, QImage
+    from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'PyQt6'])
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsRectItem
     from PyQt6.QtCore import QThread, pyqtSignal
-    from PyQt6.QtGui import QPixmap, QImage
+    from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter
 
 try:
     import fitz
@@ -170,7 +171,7 @@ class MainWindow(QMainWindow):
         """ Fill Graphic Browser """
         doc = fitz.open(file_path)
 
-        # open all pages
+        # Open all pages
         scene = QGraphicsScene()
         y_offset = 0
         for page in doc:
@@ -280,7 +281,7 @@ class MainWindow(QMainWindow):
 
         return is_line_different
 
-    def make_comparison(self):
+    def make_text_comparison(self):
         ''' Make Comparison '''
         self.textBrowser.clear()
         self.textBrowser_2.clear()
@@ -317,7 +318,91 @@ class MainWindow(QMainWindow):
 
         if "Left" in SharedObjects.current_file and "Right" in SharedObjects.current_file:
             print("Both files are selected!")
-            self.make_comparison()
+            self.make_text_comparison()
+            self.make_visual_comparison()
+
+    def subtract_img(self, img_l, img_r):
+        """ Subtract Images """
+        if img_l.size() != img_r.size():
+            print("Image sizes are not equal!")
+            return
+
+        result_image = QImage(img_l.size(), QImage.Format.Format_RGB888)
+
+        for x in range(img_l.width()):
+            for y in range(img_l.height()):
+                color1 = QColor(img_l.pixel(x, y))
+                color2 = QColor(img_r.pixel(x, y))
+
+                red = abs(color1.red() - color2.red())
+                green = abs(color1.green() - color2.green())
+                blue = abs(color1.blue() - color2.blue())
+                alpha = abs(color1.alpha() - color2.alpha())
+
+                result_image.setPixelColor(
+                    x, y, QColor(red, green, blue, alpha))
+
+        return QPixmap.fromImage(result_image)
+
+    def add_pixmap_to_scene(self, pixmap, scene):
+        # Create a pixmap item with the diff pixmap
+        pixmap_item = QGraphicsPixmapItem(pixmap)
+        pixmap_item.setPos(0, 0)
+        # Add the pixmap item to the scene
+        scene.addItem(pixmap_item)
+
+    def invert_colors(self, pixmap):
+        image = pixmap.toImage()
+
+        for x in range(image.width()):
+            for y in range(image.height()):
+                # if pixel is black alpha value is 0
+                # else alpha value is 255
+                if QColor(image.pixel(x, y)).red() == 0 and QColor(image.pixel(x, y)).green() == 0 and QColor(image.pixel(x, y)).blue() == 0:
+                    image.setPixelColor(x, y, QColor(0, 0, 0, 0))
+                else:
+                    image.setPixelColor(x, y, QColor(255, 255, 255, 255))
+
+                old_color = QColor(image.pixel(x, y))
+                new_color = QColor(255 - old_color.red(), 255 - old_color.green(),
+                                   255 - old_color.blue(), old_color.alpha())
+                image.setPixelColor(x, y, new_color)
+
+        return QPixmap.fromImage(image)
+
+    def make_visual_comparison(self):
+        ''' Make Visual Comparison '''
+        # compare scenes
+        scene_left = self.graphicsView.scene()
+        scene_right = self.graphicsView_2.scene()
+
+        # save left scenes as image
+        img_l = QImage(scene_left.sceneRect().size().toSize(),
+                       QImage.Format.Format_RGB888)
+        painter = QPainter(img_l)
+        scene_left.render(painter)
+        painter.end()
+        img_l.save("./tmp/l.png")
+
+        # save right scenes as image
+        img_r = QImage(scene_right.sceneRect().size().toSize(),
+                       QImage.Format.Format_RGB888)
+        painter = QPainter(img_r)
+        scene_right.render(painter)
+        painter.end()
+        img_r.save("./tmp/r.png")
+
+        # make difference between images
+        diff = self.subtract_img(img_l, img_r)
+
+        # invert colors
+        diff2 = self.invert_colors(diff)
+        diff2.save("./tmp/diff.png")
+
+        # add diff to scene
+        scene = QGraphicsScene()
+        self.graphicsView_3.setScene(scene)
+        self.add_pixmap_to_scene(diff2, scene)
 
     def make_ocr(self, input_file_path, language):
         ''' Make OCR '''
