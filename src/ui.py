@@ -283,6 +283,10 @@ class MainWindow(QMainWindow):
         name, ext = os.path.splitext(base_name)
         output_file_name = f"{name}_ocr{ext}"
 
+        # create tmp folder if not exists
+        if not os.path.exists('./tmp'):
+            os.makedirs('./tmp')
+
         output_file_path = os.path.join('./', 'tmp', output_file_name)
 
         self.ocr_thread = OcrThread(
