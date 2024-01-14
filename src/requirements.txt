@@ -1,2 +1,6 @@
+fitz==0.0.1.dev2
+ocrmypdf==16.0.3
+ocrmypdf==13.4.0+dfsg
+pdfplumber==0.10.3
 PyQt6==6.6.1
 PyQt6_sip==13.5.2

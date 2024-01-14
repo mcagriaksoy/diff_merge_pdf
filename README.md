@@ -13,7 +13,13 @@ PDF diff, compare and merge tool is a software application that allows users to 
 - Compatible with Windows, Mac, and Linux operating systems
 - Integrate with popular version control systems, such as Git, SVN, and Mercurial
 
-![Screenshot from program](img/image.png)
+### PDF view Screenshot from program
+
+![PDF view Screenshot from program](img/image.jpg)
+
+### Text View Screenshot from program
+
+![Text View Screenshot from program](img/image2.jpg)
 
 # Usage:
 

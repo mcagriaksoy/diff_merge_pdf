@@ -3,8 +3,12 @@ __author__ = 'Mehmet Cagri Aksoy - github.com/mcagriaksoy'
 import sys
 import os
 import pdfplumber
+import ocrmypdf
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QPixmap, QImage
+import fitz
 
 from PyQt6.uic import loadUi
 
@@ -15,27 +19,49 @@ pages_dict_left = {}
 class SharedObjects():
     """ Shared Objects """
 
-    def __init__(self,
-                 left_pdf_opened=False,
-                 right_pdf_opened=False,
-                 left_pdf_is_image=False,
-                 right_pdf_is_image=False,
-                 imported_left_pdf={},
-                 imported_right_pdf={}):
+    def __init__(self):
         """ Clear """
-        self.is_left_pdf_opened = left_pdf_opened
-        self.is_right_pdf_opened = right_pdf_opened
-        self.is_left_pdf_is_image = left_pdf_is_image
-        self.is_right_pdf_is_image = right_pdf_is_image
-        self.imported_left_pdf = imported_left_pdf
-        self.imported_right_pdf = imported_right_pdf
+        self.current_file = ""
+        self.imported_left_pdf = {}
+        self.imported_right_pdf = {}
 
-    is_left_pdf_opened = False
-    is_right_pdf_opened = False
-    is_left_pdf_is_image = False
-    is_right_pdf_is_image = False
+    current_file = ""
     imported_left_pdf = {}
     imported_right_pdf = {}
+
+
+class OcrThread(QThread):
+    ''' Ocr Thread '''
+    finished = pyqtSignal(str)
+
+    def __init__(self, input_file_path, output_file_path, language):
+        super().__init__()
+        self.input_file_path = input_file_path
+        self.output_file_path = output_file_path
+        self.language = language
+
+    def run(self):
+        ''' Run '''
+        retval = ocrmypdf.ExitCode.ctrl_c
+        while retval == ocrmypdf.ExitCode.ctrl_c:
+            try:
+                retval = ocrmypdf.ocr(self.input_file_path,
+                                      self.output_file_path, language=self.language)
+            except:
+                retval = ocrmypdf.ExitCode.pdfa_conversion_failed
+                break
+
+        if retval != ocrmypdf.ExitCode.ok:
+            # Use the input file path
+            self.finished.emit(self.input_file_path)
+        elif not os.path.exists(self.output_file_path):
+            # Use the input file path
+            self.finished.emit(self.input_file_path)
+        else:
+            # Use the output file path (success case!)
+            self.finished.emit(self.output_file_path)
+
+        return
 
 
 class MainWindow(QMainWindow):
@@ -46,6 +72,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         loadUi('ui.ui', self)  # Load the .ui file
         self.show()  # Show the GUI
+        self.msg = None
 
         self.pushButton.clicked.connect(self.left_file_dialog)
         self.pushButton_2.clicked.connect(self.right_file_dialog)
@@ -59,7 +86,9 @@ class MainWindow(QMainWindow):
         self.lineEdit_2.clear()
 
         # Init the SharedObjects
-        SharedObjects(False, False, False, False, {}, {})
+        SharedObjects.current_file = ""
+        SharedObjects.imported_left_pdf = {}
+        SharedObjects.imported_right_pdf = {}
 
         # delete tmp folder
         for filename in os.listdir("tmp"):
@@ -114,61 +143,50 @@ class MainWindow(QMainWindow):
                     index += 1
         return pages_dict  # Return the dictionary
 
-    def fill_left_side_with_images(self):
-        """ Fill Left Side With Images """
-        self.save_images(self.lineEdit.text())
-        images = self.get_images()
-        for image in images:
-            self.textBrowser.append(f'<img src="{image}">')
-
-        SharedObjects.is_left_pdf_is_image = True
-
-    def fill_right_side_with_images(self):
-        """ Fill Right Side With Images """
-        self.save_images(self.lineEdit_2.text())
-        images = self.get_images()
-        for image in images:
-            self.textBrowser_2.append(f'<img src="{image}">')
-
-        SharedObjects.is_right_pdf_is_image = True
-
     def fill_left_side_with_text(self, pages_dict):
         """ Fill Left Side With Text """
         for page in pages_dict:
             self.textBrowser.append(pages_dict[page])
-
-        SharedObjects.is_left_pdf_is_image = False
 
     def fill_right_side_with_text(self, pages_dict):
         """ Fill Right Side With Text """
         for page in pages_dict:
             self.textBrowser_2.append(pages_dict[page])
 
-        SharedObjects.is_left_pdf_is_image = False
+    def fill_graphic_browser(self, file_path, is_left):
+        """ Fill Graphic Browser """
+        doc = fitz.open(file_path)
+        page = doc.load_page(0)
+        pix = page.get_pixmap()
+        img = QImage(pix.samples, pix.width, pix.height,
+                     QImage.Format.Format_RGB888)
+        pixmap = QPixmap.fromImage(img)
+        scene = QGraphicsScene()
+        scene.addPixmap(pixmap)
+
+        if is_left:
+            self.graphicsView.setScene(scene)
+        else:
+            self.graphicsView_2.setScene(scene)
 
     def fill_text_browser(self, pages_dict, is_left):
-        ''' Fill Text Browser '''
+        """ Fill Text Browser """
         for page in pages_dict:
             if is_left:
-                if pages_dict[page] == "" or pages_dict[page] is None:
-                    self.fill_left_side_with_images()
-                else:
-                    self.fill_left_side_with_text(pages_dict)
+                self.fill_left_side_with_text(pages_dict)
 
                 self.textBrowser.append(
                     f" \n========= Page {page + 1} End ======== \n")
             else:
-                if pages_dict[page] == "" or pages_dict[page] is None:
-                    self.fill_right_side_with_images()
-                else:
-                    self.fill_right_side_with_text(pages_dict)
+                self.fill_right_side_with_text(pages_dict)
 
                 self.textBrowser_2.append(
                     f" \n========= Page {page + 1} End ======== \n")
 
     def paint_the_different_lines(self):
-        ''' Paint the Different Lines '''
+        """ Paint the Different Lines """
         is_line_different = False
+        pdf_equal = False
 
         different_lines = '<span style="color:red;">{}</span>'
         same_lines = '<span style="color:black;">{}</span>'
@@ -178,6 +196,9 @@ class MainWindow(QMainWindow):
         if len(SharedObjects.imported_right_pdf) < checking_len:
             is_left_pdf_longer = True
             checking_len = len(SharedObjects.imported_right_pdf)
+
+        elif len(SharedObjects.imported_right_pdf) == checking_len:
+            pdf_equal = True
 
         rest_pages = abs(len(SharedObjects.imported_left_pdf) -
                          len(SharedObjects.imported_right_pdf))
@@ -206,23 +227,26 @@ class MainWindow(QMainWindow):
             except KeyError:
                 print("KeyError!")
 
+        if pdf_equal:
+            return is_line_different
+
         # create for loop starting from checking_len till the end of the pages
         for page in range(checking_len, checking_len + rest_pages):
             try:
                 if is_left_pdf_longer:
-                    lines_left = SharedObjects.imported_left_pdf[page].split(
+                    rest_lines = SharedObjects.imported_left_pdf[page].split(
                         '\n')
                 else:
-                    lines_right = SharedObjects.imported_right_pdf[page].split(
+                    rest_lines = SharedObjects.imported_right_pdf[page].split(
                         '\n')
 
-                for line_right, line_left in zip(lines_right, lines_left):
+                for rest_left in zip(rest_lines):
                     if is_left_pdf_longer:
                         self.textBrowser.append(
-                            different_lines.format(line_left))
+                            different_lines.format(rest_left))
                     else:
                         self.textBrowser_2.append(
-                            different_lines.format(line_right))
+                            different_lines.format(rest_left))
 
                 if is_left_pdf_longer:
                     self.textBrowser.append(
@@ -237,44 +261,89 @@ class MainWindow(QMainWindow):
 
     def make_comparison(self):
         ''' Make Comparison '''
-        if SharedObjects.is_left_pdf_opened and SharedObjects.is_right_pdf_opened:
-            if SharedObjects.is_left_pdf_is_image is False:
-                self.textBrowser.clear()
+        self.textBrowser.clear()
+        self.textBrowser_2.clear()
 
-            if SharedObjects.is_right_pdf_is_image is False:
-                self.textBrowser_2.clear()
+        is_line_different = self.paint_the_different_lines()
+        if is_line_different is False:
+            if SharedObjects.imported_left_pdf == SharedObjects.imported_right_pdf:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("Compare Result")
+                msg.setText("These files are Binary Same!")
+                x = msg.exec()
+                return
 
-            if SharedObjects.is_left_pdf_is_image is False and SharedObjects.is_right_pdf_is_image is False:
-                is_line_different = self.paint_the_different_lines()
-                if is_line_different is False:
-                    if SharedObjects.imported_left_pdf == SharedObjects.imported_right_pdf:
-                        msg = QMessageBox()
-                        msg.setIcon(QMessageBox.Icon.Information)
-                        msg.setWindowTitle("Compare Result")
-                        msg.setText("These files are Binary Same!")
-                        x = msg.exec()
+    def close_popup(self, msg):
+        ''' Close Popup '''
+        msg.close()
+
+    def on_ocr_finished(self, output_file_path):
+        ''' On OCR Finished '''
+        if "Left" == SharedObjects.current_file or "RightLeft" == SharedObjects.current_file:
+            SharedObjects.imported_left_pdf = self.open_pdf(output_file_path)
+            self.fill_text_browser(
+                SharedObjects.imported_left_pdf, is_left=True)
+
+            self.fill_graphic_browser(output_file_path, is_left=True)
+
+        if "Right" == SharedObjects.current_file or "LeftRight" == SharedObjects.current_file:
+            SharedObjects.imported_right_pdf = self.open_pdf(output_file_path)
+            self.fill_text_browser(
+                SharedObjects.imported_right_pdf, is_left=False)
+            self.fill_graphic_browser(output_file_path, is_left=False)
+
+        if "Left" in SharedObjects.current_file and "Right" in SharedObjects.current_file:
+            print("Both files are selected!")
+            self.make_comparison()
+
+    def make_ocr(self, input_file_path, language):
+        ''' Make OCR '''
+        # make a copy of the input file on tmp folder
+        # and make ocr on the tmp folder
+        base_name = os.path.basename(input_file_path)
+
+        name, ext = os.path.splitext(base_name)
+        output_file_name = f"{name}_ocr{ext}"
+
+        output_file_path = os.path.join('./', 'tmp', output_file_name)
+
+        self.ocr_thread = OcrThread(
+            input_file_path, output_file_path, language)
+        self.ocr_thread.finished.connect(self.on_ocr_finished)
+        self.ocr_thread.start()
+        # if output path does not exist return input file path
+        # else return output file path
+
+        # it happens when the pdf does not occur any image that for ocr!
+        if not os.path.exists(output_file_path):
+            return input_file_path
+
+        return output_file_path
+
+    def select_pdf_language(self):
+        ''' Select PDF Language '''
+        # Create a popup for language selection
+        languages, ok = QInputDialog.getItem(self, "Select The Pdf Language", "Language:", [
+            "eng", "fra", "deu", "spa", "tur", "ita", "por", "nld", "rus", "jpn", "chi_sim", "chi_tra", "kor"
+        ], 0, False)
+        return languages
 
     def left_file_dialog(self):
         """ Left File Dialog """
         file_path = self.open_file_dialog()
         self.lineEdit.setText(file_path)
 
-        SharedObjects.imported_left_pdf = self.open_pdf(file_path)
-        self.fill_text_browser(SharedObjects.imported_left_pdf, is_left=True)
-
-        SharedObjects.is_left_pdf_opened = True
-        self.make_comparison()
+        SharedObjects.current_file += "Left"
+        self.make_ocr(file_path, self.select_pdf_language())
 
     def right_file_dialog(self):
         """ Right File Dialog """
         file_path = self.open_file_dialog()
         self.lineEdit_2.setText(file_path)
 
-        SharedObjects.imported_right_pdf = self.open_pdf(file_path)
-        self.fill_text_browser(SharedObjects.imported_right_pdf, is_left=False)
-
-        SharedObjects.is_right_pdf_opened = True
-        self.make_comparison()
+        SharedObjects.current_file += "Right"
+        self.make_ocr(file_path, self.select_pdf_language())
 
 
 def start_ui_design():
