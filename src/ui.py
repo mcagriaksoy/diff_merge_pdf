@@ -1,11 +1,13 @@
 __author__ = 'Mehmet Cagri Aksoy - github.com/mcagriaksoy'
+__version__ = '0.0.2'
+__date__ = '2023 January 14'
 
 import sys
 import os
 import pdfplumber
 import ocrmypdf
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QPixmap, QImage
 import fitz
@@ -29,7 +31,9 @@ class SharedObjects():
 
 class OcrThread(QThread):
     ''' Ocr Thread '''
+    started = pyqtSignal()
     finished = pyqtSignal(str)
+    msg = None
 
     def __init__(self, input_file_path, output_file_path, language):
         super().__init__()
@@ -39,6 +43,7 @@ class OcrThread(QThread):
 
     def run(self):
         ''' Run '''
+        self.started.emit()
         retval = ocrmypdf.ExitCode.ctrl_c
         while retval == ocrmypdf.ExitCode.ctrl_c:
             try:
@@ -47,7 +52,6 @@ class OcrThread(QThread):
             except:
                 retval = ocrmypdf.ExitCode.pdfa_conversion_failed
                 break
-
         if retval != ocrmypdf.ExitCode.ok:
             # Use the input file path
             self.finished.emit(self.input_file_path)
@@ -74,6 +78,10 @@ class MainWindow(QMainWindow):
         self.pushButton.clicked.connect(self.left_file_dialog)
         self.pushButton_2.clicked.connect(self.right_file_dialog)
         self.clearButton.clicked.connect(self.clear_all)
+
+        self.popup = QMessageBox(self)
+        self.popup.setText("PDF is still processing...")
+        self.popup.setStandardButtons(QMessageBox.StandardButton.NoButton)
 
     def clear_all(self):
         """ Clear All """
@@ -133,13 +141,21 @@ class MainWindow(QMainWindow):
     def fill_graphic_browser(self, file_path, is_left):
         """ Fill Graphic Browser """
         doc = fitz.open(file_path)
-        page = doc.load_page(0)
-        pix = page.get_pixmap()
-        img = QImage(pix.samples, pix.width, pix.height,
-                     QImage.Format.Format_RGB888)
-        pixmap = QPixmap.fromImage(img)
+
+        # open all pages
         scene = QGraphicsScene()
-        scene.addPixmap(pixmap)
+        y_offset = 0
+        for page in doc:
+            pix = page.get_pixmap()
+            img = QImage(pix.samples, pix.width, pix.height,
+                         QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(img)
+
+            pixmap_item = QGraphicsPixmapItem(pixmap)
+            pixmap_item.setPos(0, y_offset)
+            scene.addItem(pixmap_item)
+
+            y_offset += pixmap.height() + 10  # Add 10 for spacing between pages
 
         if is_left:
             self.graphicsView.setScene(scene)
@@ -251,12 +267,13 @@ class MainWindow(QMainWindow):
                 x = msg.exec()
                 return
 
-    def close_popup(self, msg):
-        ''' Close Popup '''
-        msg.close()
+    def show_popup(self):
+        ''' Show Popup '''
+        self.popup.show()
 
     def on_ocr_finished(self, output_file_path):
         ''' On OCR Finished '''
+        self.popup.hide()
         if "Left" == SharedObjects.current_file or "RightLeft" == SharedObjects.current_file:
             SharedObjects.imported_left_pdf = self.open_pdf(output_file_path)
             self.fill_text_browser(
@@ -291,8 +308,11 @@ class MainWindow(QMainWindow):
 
         self.ocr_thread = OcrThread(
             input_file_path, output_file_path, language)
+        self.ocr_thread.started.connect(self.show_popup)
         self.ocr_thread.finished.connect(self.on_ocr_finished)
+
         self.ocr_thread.start()
+
         # if output path does not exist return input file path
         # else return output file path
 
