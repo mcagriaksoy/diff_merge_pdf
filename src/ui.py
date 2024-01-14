@@ -4,15 +4,43 @@ __date__ = '2023 January 14'
 
 import sys
 import os
-import pdfplumber
-import ocrmypdf
+import subprocess
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QPixmap, QImage
-import fitz
+try:
+    import pdfplumber
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", 'pdfplumber'])
+    import pdfplumber
 
-from PyQt6.uic import loadUi
+try:
+    import ocrmypdf
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'ocrmypdf'])
+    import ocrmypdf
+
+try:
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
+    from PyQt6.QtCore import QThread, pyqtSignal
+    from PyQt6.QtGui import QPixmap, QImage
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'PyQt6'])
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
+    from PyQt6.QtCore import QThread, pyqtSignal
+    from PyQt6.QtGui import QPixmap, QImage
+
+try:
+    import fitz
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'PyMuPDF'])
+    import fitz
+
+try:
+    from PyQt6.uic import loadUi
+except ImportError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", 'pyqt6-tools'])
+    from PyQt6.uic import loadUi
 
 
 class SharedObjects():

@@ -6,10 +6,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Mehmet Cagri Aksoy"
 __status__ = "Production"
 
-import subprocess
 from ui import start_ui_design
 
 if __name__ == "__main__":
-    # subprocess.check_call(
-    #    ["python", "-m", "pip", "install", "-r", "requirements.txt"])
     start_ui_design()
