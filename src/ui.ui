@@ -165,7 +165,7 @@
        </widget>
        <widget class="QWidget" name="tab_3">
         <attribute name="title">
-         <string>Image Diff</string>
+         <string>X-ray Diff</string>
         </attribute>
         <widget class="QGraphicsView" name="graphicsView_3">
          <property name="geometry">
