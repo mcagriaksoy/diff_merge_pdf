@@ -21,6 +21,9 @@ PDF diff, compare and merge tool is a software application that allows users to 
 
 ![Text View Screenshot from program](img/image2.jpg)
 
+v0.0.3 New X-ray mode:
+![X-ray mode](img/image3.jpg)
+
 # Usage:
 
 The program is still under development.
