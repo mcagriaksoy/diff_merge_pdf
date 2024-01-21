@@ -5,7 +5,6 @@ __date__ = '2023 January 14'
 import sys
 import os
 import subprocess
-from tkinter import W
 
 try:
     import pdfplumber
@@ -21,12 +20,12 @@ except ImportError:
     import ocrmypdf
 
 try:
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsRectItem
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
     from PyQt6.QtCore import QThread, pyqtSignal
     from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", 'PyQt6'])
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsRectItem
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QInputDialog, QGraphicsScene, QGraphicsPixmapItem
     from PyQt6.QtCore import QThread, pyqtSignal
     from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter
 
@@ -109,6 +108,8 @@ class MainWindow(QMainWindow):
         self.clearButton.clicked.connect(self.clear_all)
 
         self.popup = QMessageBox(self)
+        # set the title
+        self.popup.setWindowTitle("Please wait!")
         self.popup.setText("PDF is still processing...")
         self.popup.setStandardButtons(QMessageBox.StandardButton.NoButton)
 
@@ -135,6 +136,7 @@ class MainWindow(QMainWindow):
                     os.unlink(file_path)
             except Exception as e:
                 print(f'Failed to delete {file_path}. Reason: {e}')
+                self.label_6.setText("Failed to delete tmp folder!")
 
     def open_file_dialog(self):
         """ Open File Dialog """
@@ -144,6 +146,9 @@ class MainWindow(QMainWindow):
                                                    "PDF Files (*.pdf)")
         if file_path:
             return file_path
+
+        self.label_6.setText("Please select a PDF file to continue!")
+        return None
 
     def open_pdf(self, file_path):
         """ Open PDF """
@@ -205,13 +210,21 @@ class MainWindow(QMainWindow):
                 self.textBrowser_2.append(
                     f" \n========= Page {page + 1} End ======== \n")
 
+    def get_color_from_combobox(self, combobox):
+        ''' Get Color From Combobox '''
+        color = combobox.currentText()
+        return color
+
     def paint_the_different_lines(self):
         """ Paint the Different Lines """
         is_line_different = False
         pdf_equal = False
 
-        different_lines = '<span style="color:red;">{}</span>'
-        same_lines = '<span style="color:black;">{}</span>'
+        different_lines = '<span style="color:{};">{}</span>'.format(
+            self.get_color_from_combobox(self.comboBox), '{}')
+
+        same_lines = '<span style="color:{};">{}</span>'.format(
+            self.get_color_from_combobox(self.comboBox_2), '{}')
 
         is_left_pdf_longer = False
         checking_len = len(SharedObjects.imported_left_pdf)
@@ -248,6 +261,7 @@ class MainWindow(QMainWindow):
                     f" \n========= Page {page + 1} End ======== \n")
             except KeyError:
                 print("KeyError!")
+                self.label_6.setText("PDF Parsing Error!")
 
         if pdf_equal:
             return is_line_different
@@ -278,6 +292,7 @@ class MainWindow(QMainWindow):
                         f" \n========= Page {page + 1} End ======== \n")
             except KeyError:
                 print("KeyError!")
+                self.label_6.setText("PDF Parsing Error!")
 
         return is_line_different
 
@@ -302,7 +317,6 @@ class MainWindow(QMainWindow):
 
     def on_ocr_finished(self, output_file_path):
         ''' On OCR Finished '''
-        self.popup.hide()
         if "Left" == SharedObjects.current_file or "RightLeft" == SharedObjects.current_file:
             SharedObjects.imported_left_pdf = self.open_pdf(output_file_path)
             self.fill_text_browser(
@@ -317,14 +331,17 @@ class MainWindow(QMainWindow):
             self.fill_graphic_browser(output_file_path, is_left=False)
 
         if "Left" in SharedObjects.current_file and "Right" in SharedObjects.current_file:
-            print("Both files are selected!")
+            self.label_6.setText("Comparison mode is activated!")
             self.make_text_comparison()
             self.make_visual_comparison()
+
+        self.popup.hide()
 
     def subtract_img(self, img_l, img_r):
         """ Subtract Images """
         if img_l.size() != img_r.size():
             print("Image sizes are not equal!")
+            self.label_6.setText("Image sizes are not equal!")
             return
 
         result_image = QImage(img_l.size(), QImage.Format.Format_RGB888)
@@ -345,13 +362,14 @@ class MainWindow(QMainWindow):
         return QPixmap.fromImage(result_image)
 
     def add_pixmap_to_scene(self, pixmap, scene):
-        # Create a pixmap item with the diff pixmap
+        ''' Create a pixmap item with the diff pixmap '''
         pixmap_item = QGraphicsPixmapItem(pixmap)
         pixmap_item.setPos(0, 0)
         # Add the pixmap item to the scene
         scene.addItem(pixmap_item)
 
     def invert_colors(self, pixmap):
+        ''' Invert Colors '''
         image = pixmap.toImage()
 
         for x in range(image.width()):
@@ -395,6 +413,8 @@ class MainWindow(QMainWindow):
         # make difference between images
         diff = self.subtract_img(img_l, img_r)
 
+        if diff is None:
+            return
         # invert colors
         diff2 = self.invert_colors(diff)
         diff2.save("./tmp/diff.png")
@@ -439,9 +459,16 @@ class MainWindow(QMainWindow):
         ''' Select PDF Language '''
         # Create a popup for language selection
         languages, ok = QInputDialog.getItem(self, "Select The Pdf Language", "Language:", [
-            "eng", "fra", "deu", "spa", "tur", "ita", "por", "nld", "rus", "jpn", "chi_sim", "chi_tra", "kor"
+            "eng", "fra", "deu", "spa", "tur", "ita", "por",
+            "nld", "rus", "jpn", "chi_sim", "chi_tra", "kor"
         ], 0, False)
-        return languages
+
+        # If user click OK and select a language return the language
+        if languages and ok:
+            return languages
+
+        self.label_6.setText("Please select a PDF language to continue!")
+        return None
 
     def clear_if_finished(self):
         ''' Clear If Finished '''
@@ -452,19 +479,23 @@ class MainWindow(QMainWindow):
         """ Left File Dialog """
         self.clear_if_finished()
         file_path = self.open_file_dialog()
-        self.lineEdit.setText(file_path)
-
-        SharedObjects.current_file += "Left"
-        self.make_ocr(file_path, self.select_pdf_language())
+        if file_path:
+            self.lineEdit.setText(file_path)
+            lang = self.select_pdf_language()
+            if lang:
+                SharedObjects.current_file += "Left"
+                self.make_ocr(file_path, lang)
 
     def right_file_dialog(self):
         """ Right File Dialog """
         self.clear_if_finished()
         file_path = self.open_file_dialog()
-        self.lineEdit_2.setText(file_path)
-
-        SharedObjects.current_file += "Right"
-        self.make_ocr(file_path, self.select_pdf_language())
+        if file_path:
+            self.lineEdit_2.setText(file_path)
+            lang = self.select_pdf_language()
+            if lang:
+                SharedObjects.current_file += "Right"
+                self.make_ocr(file_path, lang)
 
 
 def start_ui_design():
